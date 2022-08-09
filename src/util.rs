@@ -10,12 +10,7 @@ pub struct IndexTree<T>
 
 impl<T> IndexTree<T>
 {
-    /*
-    pub fn new(root_val: T) -> IndexTree<T> {
-        let idx = 0;
-        IndexTree{nodes: vec![IndexNode::new(idx, None, root_val)]}
-    }
-    */
+
 
     pub fn new() -> IndexTree<T> {
         IndexTree{nodes: Vec::new()}
@@ -43,6 +38,14 @@ impl<T> IndexTree<T>
         &self.nodes[idx]
     }
 
+    pub fn parent(&self, idx: usize) -> Option<&T> {
+        let parent_idx = self.nodes[idx].parent;
+        match parent_idx {
+            Some(i) => Some(self.node_val(i)),
+            None => None
+        }
+    }
+
     pub fn children(&self, idx: usize) -> Vec<&IndexNode<T>> {
         self.nodes[idx].children.iter().map(|i| {
             &self.nodes[*i]
@@ -67,7 +70,7 @@ impl<T> IndexTree<T>
 }
 
 #[derive(Debug)]
-struct IndexNode<T>
+pub struct IndexNode<T>
 {
     idx: usize,
     val: T,
@@ -95,9 +98,6 @@ impl<T> IndexNode<T>
     }
 }
 
-
-
-
 #[derive(Debug)]
 pub enum NameMapError<T: Named> {
     NameAlreadyExists(T)
@@ -117,10 +117,13 @@ impl<T: Named> NameMap<T> {
         NameMap{map: HashMap::new()}
     }
 
-    pub fn insert(&mut self, item: T) -> Result<Option<T>, NameMapError<T>> {
+    pub fn insert(&mut self, item: T) -> Result<(), NameMapError<T>> {
         match self.map.get(&item.name()) {
-            Some(v) => Err(NameMapError::NameAlreadyExists(item)),
-            None => Ok(self.map.insert(item.name().clone(), item)),
+            Some(_) => Err(NameMapError::NameAlreadyExists(item)),
+            None => {
+                self.map.insert(item.name().clone(), item);
+                Ok(())
+            }
         }
     }
 

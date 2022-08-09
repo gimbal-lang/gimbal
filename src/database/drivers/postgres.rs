@@ -1,6 +1,6 @@
 
 use crate::database::{DatabaseError, Table, Column, ColumnType};
-use postgres::{Client, NoTls, error::DbError as PgDbError, Error as PgError};
+use postgres::{Client, NoTls, Error as PgError};
 
 #[derive(Debug)]
 pub struct Postgres {

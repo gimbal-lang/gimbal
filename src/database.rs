@@ -2,7 +2,6 @@ pub mod schema;
 pub mod drivers;
 
 use std::fmt;
-use std::error;
 
 #[derive(Debug)]
 pub struct DatabaseError {
