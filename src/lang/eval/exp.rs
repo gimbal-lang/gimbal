@@ -34,6 +34,10 @@ impl BVariable {
     pub(super) fn eval(&self, params: &Vec<&Value>) -> Value {
         params[self.index].clone()
     }
+
+    pub(super) fn new(index: usize) -> BVariable {
+        BVariable{index}
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +46,7 @@ pub(super) struct FnApp {
 }
 
 impl FnApp {
-    fn new(name: &str) -> Self {
+    pub(super) fn new(name: &str) -> Self {
         FnApp{name: name.to_string()}
     }
 
@@ -80,7 +84,7 @@ impl Value {
         *self.as_type() == Type::Int || *self.as_type() == Type::Float
     }
 
-    fn int_value(&self) -> Result<i128, EvalError> {
+    pub(super)fn int_value(&self) -> Result<i128, EvalError> {
         if self.value_type == Type::Int {
             match self.value.parse::<i128>() {
                 Ok(i) => Ok(i),
@@ -91,7 +95,7 @@ impl Value {
         }
     }
 
-    fn new_int(value: i128) -> Value {
+    pub(super) fn new_int(value: i128) -> Value {
         Value{value: value.to_string(), value_type: Type::Int}
     }
 
@@ -113,9 +117,8 @@ impl Value {
 
 #[cfg(test)]
 mod tests {
-  use super::{Value, BVariable, Type, FnApp, Defs, Exp};
-  use super::super::defs::{FnBody, Signature, FnDef};
-  use crate::util::{IndexTree};
+  use super::{Value, BVariable, FnApp};
+  use super::super::tests::{test_defs};
 
 
   #[test]
@@ -130,26 +133,13 @@ mod tests {
 
   #[test]
   fn fn_app_eval() {
+      let defs = test_defs();
+
       let v1 = Value::new_int(1);
       let v2 = Value::new_int(2);
       let params = vec![&v1, &v2];
 
-      let t1 = Type::Int;
-      let t2 = Type::Int;
-      let types = vec![t1, t2];
-
-      let mut fn_tree = IndexTree::new();
-      fn_tree.add_node(None, Exp::BVariable(BVariable{index: 1}));
-      let fn_body = FnBody::new(fn_tree);
-
-      let sig = Signature::new(Type::Int, types, fn_body);
-
-      let fn_def = FnDef::new("test_fn", vec![sig]);
-
-      let mut defs = Defs::new();
-      let x = defs.insert(fn_def).unwrap();
-
-      let fn_app = FnApp::new("test_fn");
+      let fn_app = FnApp::new("second");
       let result = fn_app.eval(&params, &defs).unwrap();
       assert_eq!(2, result.int_value().unwrap());
   }
