@@ -11,14 +11,12 @@ use crate::util::{IndexTree};
 
 
 fn eval(tree: &IndexTree<Exp>, idx: usize, params: Option<&Vec<&Value>>, defs: &Defs) -> Result<Value, EvalError> {
-    println!("+++++ {:?}", &tree.node_val(idx));
     match tree.node_val(idx) {
         Exp::BVariable(b) => Ok(b.eval(params.unwrap())),
         Exp::Value(v) => Ok(v.clone()),
         Exp::FnApp(f) => {
             let pv:Vec<Value> = eval_children(tree, idx, params, defs)?;
             let p:Vec<&Value> = pv.iter().map(|v| v).collect();
-            println!("***** {:?}", &p);
             match eval_core(f, &p) {
                 Ok(v) => Ok(v),
                 Err(e) => match f.eval(&p, defs) {

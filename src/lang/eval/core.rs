@@ -4,7 +4,6 @@ use super::exp::{FnApp, Value, Type};
 
 pub(super) fn eval_core(fn_app: &FnApp, params: &Vec<&Value>) -> Result<Value, EvalError> {
     let types: Vec<&Type> = params.iter().map(|p| p.as_type()).collect();
-    println!("^^^^^ {:?}", &fn_app);
     match fn_app.name() {
         "+" => {
             if types == vec![&Type::Int, &Type::Int] {
