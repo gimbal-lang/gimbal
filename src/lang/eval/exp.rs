@@ -76,7 +76,7 @@ pub(super) struct Value{
 }
 
 impl Value {
-    fn as_type(&self) -> &Type {
+    pub(super) fn as_type(&self) -> &Type {
         &self.value_type
     }
 
