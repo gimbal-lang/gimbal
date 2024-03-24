@@ -1,0 +1,11 @@
+file = {  (statement ~ ";")+  }
+statement = { pentity }
+pentity = { "persistent" ~ entity_def ~ attrs?}
+entity_def = { entity_type ~ entity_name }
+entity_name = ${ ASCII_ALPHA_UPPER ~ ASCII_ALPHA+  }
+entity_type = { "document" | "thing" | "table"  }
+attrs = { "{" ~ attr ~ ("," ~ attr)* ~ ","? ~ "}" }
+attr = { attr_name ~":"~ attr_type }
+attr_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
+attr_type = { "int" | "string" | "float" | "decimal" | "bool" | "datetime"}
+WHITESPACE = _{ " " | "\n" | "\t" | "\r" }
