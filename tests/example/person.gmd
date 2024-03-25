@@ -1,3 +1,5 @@
+module example;
+
 persistent thing Person {
   first_name: string,
   second_name: string,

@@ -3,63 +3,69 @@ use std::{collections::HashMap, hash::Hash, path::Path};
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::Module;
 
 #[derive(Parser)]
 #[grammar="src/lang/data_lang/data_lang.pest"]
 pub struct DataLangParser;
 
 #[derive(Debug)]
-enum Statement<'a> {
-    PersistantEntity{_def: EntityDefHashMap<'a>, _attrs: AttrsHashMap<'a>}
+enum DataType<'a> {
+    PersistentEntity{_def: EntityDefHashMap<'a>, _attrs: AttrsHashMap<'a>}
 }
 
-type Statements<'a> = Vec<Statement<'a>>;
-pub fn parse_data_lang(module_path: &Path, unparsed_file: &str) -> Module {
-    let mut statements: Statements = Vec::new();
-    let pairs = DataLangParser::parse(Rule::file, unparsed_file).expect("unsuccesful parse").next().unwrap();
-    for line in pairs.into_inner() {
-        match line.as_rule() {
-            // Rule::entity => {
-            //     println!("{}", line.into_inner().next().unwrap().as_str());
-            // }
+#[derive(Debug)]
+struct Module<'a> {
+    _name: &'a str,
+    _data_types: DataTypes<'a>
+}
+
+type DataTypes<'a> = HashMap<&'a str, Box<DataType<'a>>>;
+
+pub fn parse_data_lang(_module_path: &Path, unparsed_file: &str)  {
+    let mut module_name: &str = "";
+    let mut data_types: DataTypes = HashMap::new();
+    let pairs = DataLangParser::parse(Rule::file, unparsed_file).expect("unsuccesful parse").next().unwrap().into_inner();
+    for p in pairs {
+        match p.as_rule() {
             Rule::statement => {
-                let statement = line.into_inner().next().unwrap();
+                let statement = p.into_inner().next().unwrap();
                 //println!("*statement: {:#?}\n\n", statement);
                 match statement.as_rule() {
-                    Rule::pentity => statements.push(parse_entity(statement)),
+                    Rule::persistent_entity => data_types.extend(HashMap::from([parse_entity(statement)])),
                     _ => unreachable!(),
                 };
 
             }
+            Rule::module => module_name = parse_module(p),
             _ => ()
         };
     };
-    println!("statements: {:#?}", statements);
-    Module{_path: module_path.to_str().expect("path error").to_string()}
+    let module = Module{_name: module_name, _data_types: data_types};
+    println!("module: {:#?}", module);
+}
+
+fn parse_module(pair: Pair<'_, Rule>) -> &str {
+    pair.into_inner().next().unwrap().as_str() 
 }
 
 
-fn parse_entity(pairs: Pair<Rule>) -> Statement {
-    //println!("**pentity: {:#?}\n\n", pentity);
+fn parse_entity(pair: Pair<Rule>) -> (&str, Box<DataType>) {
     let mut entity_def_hm: EntityDefHashMap = HashMap::new();
     let mut attrs_hm: AttrsHashMap = HashMap::new(); 
-    for pairs in pairs.into_inner() {
+    for pairs in pair.into_inner() {
         match pairs.as_rule() {
             Rule::entity_def => entity_def_hm = parse_entity_def(pairs),
             Rule::attrs => attrs_hm = parse_attrs(pairs),
             _ => unreachable!(),
         };
     };
-    //println!("entity_def_hm: {:#?}", entity_def_hm);
-    //println!("attrs_hm: {:#?}", attrs_hm);
-    Statement::PersistantEntity { _def: entity_def_hm, _attrs: attrs_hm }
+    (entity_def_hm["entity_name"], Box::new(DataType::PersistentEntity { _def: entity_def_hm, _attrs: attrs_hm }))
 }
 
 type EntityDefHashMap<'a> = HashMap<&'a str, &'a str>;
-fn parse_entity_def(pairs: Pair<Rule>) -> EntityDefHashMap {
+fn parse_entity_def(pair: Pair<Rule>) -> EntityDefHashMap {
     let mut hash_map: EntityDefHashMap = HashMap::new();
-    for pair in pairs.into_inner() {
+    for pair in pair.into_inner() {
         match pair.as_rule() {
             Rule::entity_name => hash_map.insert("entity_name", pair.as_str()),
             Rule::entity_type => hash_map.insert("entity_type", pair.as_str()),

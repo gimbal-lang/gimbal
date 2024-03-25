@@ -1,6 +1,8 @@
-file = {  (statement ~ ";")+  }
-statement = { pentity }
-pentity = { "persistent" ~ entity_def ~ attrs?}
+file = {  module ~ ";" ~ (statement ~ ";")+  }
+module = { "module" ~ module_name }
+module_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
+statement = { persistent_entity }
+persistent_entity = { "persistent" ~ entity_def ~ attrs?}
 entity_def = { entity_type ~ entity_name }
 entity_name = ${ ASCII_ALPHA_UPPER ~ ASCII_ALPHA+  }
 entity_type = { "document" | "thing" | "table"  }
