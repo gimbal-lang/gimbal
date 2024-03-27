@@ -1,10 +1,12 @@
-use std::fs;
 use std::path::Path;
-use crate::lang::data_lang::data_lang_parser::parse_data_lang;
+
+use lang::data_lang::data_lang_parser::parse_gmd_files;
+
 mod lang;
 fn main() {
-    let module_path = Path::new("tests/example/person.gmd");
-    let unparsed_file = fs::read_to_string(module_path).expect("file not found");
-    parse_data_lang(&module_path, &unparsed_file);
+    let app_path = Path::new("tests/example");
+    let _modules = parse_gmd_files(app_path);
     
 }
+
+

@@ -1,4 +1,5 @@
-module example;
+module example
+;
 
 persistent thing Person {
   first_name: string,

@@ -11,19 +11,21 @@ pub struct DataLangParser;
 type Modules = HashMap<String, Module>;
 #[derive(Debug, Clone)]
 pub enum DataType {
-    PersistentEntity{def: Box<EntityDef>, attrs: Box<AttrsHashMap>}
+    PersistentEntity{def: Box<EntityDefHashMap>, attrs: Box<AttrsHashMap>}
 }
 
 #[derive(Debug, Clone)]
 pub struct  Module {
     pub name: String,
-    pub data_types: Box<DataTypes>
+    pub data_types: Box<DataTypesHM>
 }
 
-pub type DataTypes = HashMap<String,  DataType>;
+
+pub type DataTypesHM = HashMap<String,  DataType>;
 
 pub fn parse_gmd_files(app_path: &Path) -> Modules  {
-    let paths = fs::read_dir(app_path).expect("Project folder not found");
+    let paths = fs::read_dir(app_path).unwrap();
+    let mut module_list: Vec<Module> = Vec::new();
     let mut modules: Modules = HashMap::new();
     for file_dir in paths {
         let path = file_dir.unwrap().path();
@@ -31,26 +33,31 @@ pub fn parse_gmd_files(app_path: &Path) -> Modules  {
             let unparsed_file = fs::read_to_string(&path).expect("file not found");
             let module = parse_data_lang( &unparsed_file);
             let name = module.name.to_string();
-            let previous_module = modules.remove(&name);
-            match previous_module {
-                Some(pm) => {
-                    let merged_data_types = module.data_types.iter().chain(pm.data_types.iter()).map(|x| (x.0.clone(), x.1.clone())).collect();
-                    modules.insert(name.clone(), Module{name: name.clone(), data_types: Box::new(merged_data_types)});
-
-                },
-                None => {modules.insert(name.clone(), module);},
-            };
+            modules.
         }
     };
 
-    println!("modules: {:#?}", modules);
+    for module in module_list.into_iter() {
+        modules.insert(module.name.clone(), module_list.into_iter().filter(|x| x.name == module.name));
+    }
+    println!("files: {:#?}", module_list);
+    let modules = HashMap::new();
+    // let modules = merge_modules(&mut files);
+    // println!("modules: {:#?}", &modules);
     modules
 }
 
+// fn _merge_modules(module_list: &mut Vec<Module>) -> Modules {
+//     let mut modules: Modules = HashMap::new();
+//     for module in module_list {
+//         modules.insert(module.name, )
+//     }
+//     modules
+// }
 
 fn parse_data_lang(unparsed_file: &str) -> Module {
     let mut module_name: String = String::new();
-    let mut data_types = DataTypes::new();
+    let mut data_types = DataTypesHM::new();
     let pairs = DataLangParser::parse(Rule::file, unparsed_file).expect("unsuccesful parse").next().unwrap().into_inner();
     for p in pairs {
         match p.as_rule() {
@@ -77,7 +84,7 @@ fn parse_module(pair: Pair<'_, Rule>) -> String {
 
 
 fn parse_entity(pair: Pair<Rule>) -> (String, DataType) {
-    let mut entity_def_hm: EntityDef = HashMap::new();
+    let mut entity_def_hm: EntityDefHashMap = HashMap::new();
     let mut attrs_hm: AttrsHashMap = HashMap::new(); 
     for pairs in pair.into_inner() {
         match pairs.as_rule() {
@@ -89,9 +96,9 @@ fn parse_entity(pair: Pair<Rule>) -> (String, DataType) {
     (entity_def_hm["entity_name"].clone(), DataType::PersistentEntity { def: Box::new(entity_def_hm), attrs: Box::new(attrs_hm) })
 }
 
-type EntityDef = HashMap<String, String>;
-fn parse_entity_def(pair: Pair<Rule>) -> EntityDef {
-    let mut hash_map: EntityDef = HashMap::new();
+type EntityDefHashMap = HashMap<String, String>;
+fn parse_entity_def(pair: Pair<Rule>) -> EntityDefHashMap {
+    let mut hash_map: EntityDefHashMap = HashMap::new();
     for pair in pair.into_inner() {
         match pair.as_rule() {
             Rule::entity_name => hash_map.insert("entity_name".to_string(), pair.as_str().to_string()),
