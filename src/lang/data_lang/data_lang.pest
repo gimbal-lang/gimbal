@@ -1,13 +1,16 @@
-file = {  module ~ ";" ~ (statement ~ ";")+  }
-module = { "module" ~ module_name }
+file = {  module_def  ~ (type_def)*  }
+//file = { module_def }
+module_def = { "module" ~ module_name ~ ";" }
 module_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
-statement = { persistent_entity }
-persistent_entity = { "persistent" ~ entity_def ~ attrs?}
-entity_def = { entity_type ~ entity_name }
-entity_name = ${ ASCII_ALPHA_UPPER ~ ASCII_ALPHA+  }
-entity_type = { "document" | "thing" | "table"  }
+type_def = { (entity | type_alias ) ~ ";" }
+//data_type_def = { type_alias ~ ";"}
+type_alias = { "type" ~ type_name ~ "=" ~ type_name}
+type_name = ${ ASCII_ALPHA_UPPER ~ ASCII_ALPHA*  }
+entity = { "entity" ~ type_name ~ entity_def }
+entity_def = { extends? ~ attrs? }
+extends = { "extends" ~ qualified_type_name }
 attrs = { "{" ~ attr ~ ("," ~ attr)* ~ ","? ~ "}" }
-attr = { attr_name ~":"~ attr_type }
+attr = { attr_name ~":"~ type_name }
 attr_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
-attr_type = { "int" | "string" | "float" | "decimal" | "bool" | "datetime"}
+qualified_type_name = {  module_name ~ "." ~ type_name }
 WHITESPACE = _{ " " | "\n" | "\t" | "\r" }
