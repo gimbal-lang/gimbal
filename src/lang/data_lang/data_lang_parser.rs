@@ -24,7 +24,7 @@ pub enum Node {
 pub fn parse_file(unparsed_file: &str, file_name: &str) -> () {
     let mut pairs = DataLangParser::parse(Rule::file, unparsed_file).unwrap();
     println!("pairs: {:#?}", pairs);
-    let file: Node = Node::node(pairs.next().unwrap(), file_name);
+    let file: Node = pairs.next().unwrap().node(file_name);
     let module = if let Node::File(_, node) = file {
         node.to_hm()
     } else {unreachable!()};
@@ -33,6 +33,7 @@ pub fn parse_file(unparsed_file: &str, file_name: &str) -> () {
 
 trait GimbalPair {
     fn tos(&self) -> String;
+    fn node(self, fname: &str) -> Node;
 }
 
 
@@ -41,6 +42,18 @@ impl GimbalPair for Pair<'_, Rule> {
         self.as_str().to_string()
     }
 
+    fn node(self, fname: &str) -> Node {
+        match self.as_rule() {
+            Rule::file => Node::file(self, fname),
+            Rule::type_def => Node::type_def(self, fname),
+            Rule::entity => Node::entity(self, fname),
+            Rule::type_alias => Node::type_alias(self, fname),
+            Rule::entity_def => Node::entity_def(self, fname),
+            Rule::type_name => Node::type_name(self, fname),
+            Rule::attr => Node::attr(self, fname),
+            _ => unreachable!(),
+        }
+    }
 }
 trait Boxable {
     fn bx(self) -> Box<Self>;
@@ -84,30 +97,18 @@ impl Node {
         }
     }
 
-    fn node(pair: Pair<Rule>, fname: &str) -> Node {
-        match pair.as_rule() {
-            Rule::file => Node::file(pair, fname),
-            Rule::type_def => Node::type_def(pair, fname),
-            Rule::entity => Node::entity(pair, fname),
-            Rule::type_alias => Node::type_alias(pair, fname),
-            Rule::entity_def => Node::entity_def(pair, fname),
-            Rule::type_name => Node::type_name(pair, fname),
-            Rule::attr => Node::attr(pair, fname),
-            _ => unreachable!(),
-        }
-    }
 
 
     fn file(pair: Pair<Rule>, fname: &str) -> Node {
         let mut pairs = pair.into_inner();
         let module_name = pairs.next().unwrap().into_inner().next().unwrap().tos();
-        let nodes = pairs.map(|x| Node::node(x, fname)).collect();
+        let nodes = pairs.map(|x| x.node(fname)).collect();
         Node::File(fname.to_string(), Node::Module(module_name, nodes).bx())
     }
 
     fn type_def(pair: Pair<Rule>, fname: &str) -> Node {
         let mut pairs = pair.into_inner();
-        Node::node(pairs.next().unwrap(), fname)
+        pairs.next().unwrap().node(fname)
     }
 
     fn entity(pair: Pair<Rule>, fname: &str) -> Node {
@@ -115,14 +116,14 @@ impl Node {
         let entity = pairs.next().unwrap();
         println!("entity: {:#?}", entity);
         let entity_name = entity.clone().as_str().to_string();
-        Node::Entity(entity_name, Node::node(pairs.next().unwrap(), fname).bx())
+        Node::Entity(entity_name, pairs.next().unwrap().node(fname).bx())
     }
 
 
     fn type_alias(pair: Pair<Rule>, fname: &str) -> Node {
         let mut pairs = pair.into_inner();
         let alias_name = pairs.next().unwrap().tos();
-        let aliased_type = Node::node(pairs.next().unwrap(), fname);
+        let aliased_type = pairs.next().unwrap().node(fname);
         Node::TypeAlias(alias_name, aliased_type.bx())
     }
 
@@ -134,7 +135,7 @@ impl Node {
     fn entity_def(pair: Pair<'_, Rule>, fname: &str) -> Node {
         let mut pairs = pair.into_inner();
         let extends = pairs.next().map(|x| x.tos());
-        let attrs_option = pairs.next().map(|x| x.into_inner().map(|y| Node::node(y, fname)).collect::<Vec<Node>>());
+        let attrs_option = pairs.next().map(|x| x.into_inner().map(|y| y.node(fname)).collect::<Vec<Node>>());
         let attrs = match attrs_option {
             Some(v) => v,
             None => Vec::new(),
@@ -145,7 +146,7 @@ impl Node {
     fn attr(pair: Pair<'_, Rule>, fname: &str) -> Node {
         let mut pairs = pair.into_inner();
         let name = pairs.next().unwrap().tos();
-        let attr_type = Node::node(pairs.next().unwrap(), fname);
+        let attr_type = pairs.next().unwrap().node(fname);
         Node::Attr(name, attr_type.bx())
     }
 
