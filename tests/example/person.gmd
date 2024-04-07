@@ -4,5 +4,5 @@ type PersonName = String;
 type CompanyName = String;
 entity Person extends a.B {
   name: PersonName,
-};
-entity X;
+}
+entity X {}

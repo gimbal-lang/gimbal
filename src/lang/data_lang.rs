@@ -1,1 +1,2 @@
-pub mod data_lang_parser;
+pub mod parser;
+

@@ -1,12 +1,22 @@
-use std::{fs, path::Path};
+use std::path::{Path, PathBuf};
 
-use lang::data_lang::data_lang_parser::parse_file;
+use lang::data_lang::parser::parse_app;
 
 mod lang;
+mod error;
+
+
+
+
+
+
 fn main() {
-    let app_path = Path::new("tests/example/person.gmd");
-    let files = parse_file(&fs::read_to_string(app_path).expect("file not found"), app_path.to_str().unwrap());
-    println!("files: {:#?}", files);
+    let app_path: PathBuf = Path::new("tests/example/").to_path_buf();
+    let module_map = parse_app(&app_path);
+    match module_map {
+        Ok(m) => println!("modules: {:#?}", m),
+        Err(e) => println!("{}", e),
+    }
 }
 
 
