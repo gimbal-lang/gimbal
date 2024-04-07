@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_attributes)]
 use std::{collections::HashMap, ffi::OsStr, fmt::Debug, fs, hash::Hash, path::PathBuf};
 
 use pest::{iterators::Pair, Parser};
@@ -35,7 +36,7 @@ pub enum Node {
 
 
 #[derive(Debug)]
-pub struct OfModule{ s: String, h: HashMap<String, Node> }
+pub struct OfModule{ _s: String, _h: HashMap<String, Node> }
 
 
 #[derive(Debug)]
@@ -85,7 +86,7 @@ pub fn parse_file(unparsed_file: &str, path: &PathBuf) -> Result<ModuleTuple, Er
     let file: Node = pairs.next().unwrap().node(path);
     let module = if let Node::File(n) = file {
        if let Node::Module(of_module) = *n {
-        (of_module.s, of_module.h)
+        (of_module._s, of_module._h)
        } else {
         unreachable!()
        }
@@ -170,7 +171,7 @@ impl Node {
             }
         } 
         ).collect();
-        Node::File(Node::Module(OfModule{ s: module_name, h: nodes }).bx())
+        Node::File(Node::Module(OfModule{ _s: module_name, _h: nodes }).bx())
     }
 
     fn type_def(pair: Pair<Rule>, path: &PathBuf) -> Node {
