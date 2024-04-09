@@ -1,9 +1,7 @@
 
 use std::{fmt, path::PathBuf};
 
-use crate::lang::data_lang::parser::Rule;
-
-
+use super::parser::Rule;
 
 #[derive(Debug)]
 pub enum Error {

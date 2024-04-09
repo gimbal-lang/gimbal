@@ -1,7 +1,6 @@
 mod lang;
-mod error;
 mod repl;
-
+mod app;
 
 fn main() {
     // let app_path: PathBuf = Path::new("tests/example/").to_path_buf();

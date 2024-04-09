@@ -1,0 +1,12 @@
+
+line = _{ (":" ~ command) | (!":" ~ gimbal) }
+command = { load | reload | help | set  }
+help = { "help" }
+load = { "load" ~ path }
+reload = { "reload" }
+path = { ANY+ }
+gimbal = { ANY+ }
+set = { "set" ~ set_mod }
+set_mod = { ("mod" | "module") ~ module_name }
+module_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
+WHITESPACE = _{ " " | "\n" | "\t" | "\r" }

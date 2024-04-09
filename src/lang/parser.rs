@@ -1,28 +1,28 @@
-#![allow(dead_code, unused_attributes)]
+//#![allow(dead_code, unused_attributes)]
 use std::{collections::HashMap, ffi::OsStr, fmt::Debug, fs, hash::Hash, path::PathBuf};
 
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::{error::GimbalResult, error::Error};
+use crate::app::App;
+
+use super::error::{Error, GimbalResult};
 
 
 #[derive(Parser)]
-#[grammar="src/lang/data_lang/data_lang.pest"]
+#[grammar="src/lang/lang.pest"]
 struct DataLangParser;
 
-// impl From<io::Error, PathBuf> for Error {
-//      fn from(value: io::Error) -> Self {
-//          Error::ParserError { msg: value.to_string(), path: value. }
-//      }
-// }
 
-
+type PestError = pest::error::Error<Rule>;
 type NonLeafNodeMap = HashMap<String, Node>;
 pub type ModuleMap = HashMap<String, NonLeafNodeMap>;
+
 type ModuleTuple = (String, NonLeafNodeMap);
 
-//type VecOfNonLeafNode = Vec<OfNonLeafNode>;
+
+
+
 
 #[derive(Debug)]
 pub enum Node {
@@ -48,7 +48,7 @@ impl OfNonLeafNode {
     }
 }
 
-pub fn parse_app(app_path: &PathBuf) -> Result<ModuleMap, Error>  {
+pub fn parse_app(app_path: &PathBuf) -> Result<App, Error>  {
     let paths_to_parse = paths_to_parse(app_path)?;
     let modules: Vec<ModuleTuple>  = paths_to_parse.into_iter().map(|y| Ok(parse_path(&y))?).collect::<Result<Vec<ModuleTuple>, Error>>()?;
     //println!("modules: {:#?}", modules);
@@ -62,7 +62,7 @@ pub fn parse_app(app_path: &PathBuf) -> Result<ModuleMap, Error>  {
             module_map.insert(module.0, module.1)
         };
     };
-    Ok(module_map)
+    Ok(App::load(module_map))
 }
 
 
@@ -77,13 +77,12 @@ fn paths_to_parse(app_path: &PathBuf) -> Result<Vec<PathBuf>, Error> {
 }
 
 fn parse_path(path: &PathBuf) -> Result<ModuleTuple, Error> {
-    parse_file(&fs::read_to_string(&path).togr(path)?, path)
+    parse_file(&fs::read_to_string(&path).togr(path)?).togr(path)
 }
 
-pub fn parse_file(unparsed_file: &str, path: &PathBuf) -> Result<ModuleTuple, Error> {
-    let mut pairs = DataLangParser::parse(Rule::file, unparsed_file).togr(path)?;
-    // println!("pairs: {:#?}", pairs);
-    let file: Node = pairs.next().unwrap().node(path);
+pub fn parse_file(unparsed_file: &str) -> Result<ModuleTuple, PestError> {
+    let mut pairs = DataLangParser::parse(Rule::file, unparsed_file)?;
+    let file: Node = pairs.next().unwrap().node();
     let module = if let Node::File(n) = file {
        if let Node::Module(of_module) = *n {
         (of_module._s, of_module._h)
@@ -93,13 +92,12 @@ pub fn parse_file(unparsed_file: &str, path: &PathBuf) -> Result<ModuleTuple, Er
     } else {
         unreachable!()
     };
-    // println!("{:#?}", module);
     Ok(module)
 }
 
 trait GimbalPair {
     fn tos(&self) -> String;
-    fn node(self, path: &PathBuf) -> Node;
+    fn node(self) -> Node;
 }
 
 
@@ -108,15 +106,15 @@ impl GimbalPair for Pair<'_, Rule> {
         self.as_str().to_string()
     }
 
-    fn node(self, path: &PathBuf) -> Node {
+    fn node(self) -> Node {
         match self.as_rule() {
-            Rule::file => Node::file(self, path),
-            Rule::type_def => Node::type_def(self, path),
-            Rule::entity_def => Node::entity_def(self, path),
-            Rule::type_alias => Node::type_alias(self, path),
-            Rule::entity => Node::entity(self, path),
-            Rule::type_name => Node::type_name(self, path),
-            Rule::attr => Node::attr(self, path),
+            Rule::file => Node::file(self),
+            Rule::type_def => Node::type_def(self),
+            Rule::entity_def => Node::entity_def(self),
+            Rule::type_alias => Node::type_alias(self),
+            Rule::entity => Node::entity(self),
+            Rule::type_name => Node::type_name(self),
+            Rule::attr => Node::attr(self),
             _ => unreachable!(),
         }
     }
@@ -142,28 +140,10 @@ impl Node {
         Box::new(self)
     }
 
-
-
-
-    // fn nodes_to_hm(nodes: Vec<Node>) -> HashMap<String, Node>{
-    //     nodes.into_iter().map(|x| x.node_to_tuple()).collect()
-    // }
-
-    // fn node_to_tuple(self) -> (String, Node) {
-    //     match self {
-    //         Node::TypeAlias(name, node) => (name, *node),
-    //         Node::Entity(name, node) => (name, *node),
-    //         Node::Attr(name, node) => (name, *node),
-    //         _ => unreachable!(),
-    //     }
-    // }
-
-
-
-    fn file(pair: Pair<Rule>, path: &PathBuf) -> Node {
+    fn file(pair: Pair<Rule>) -> Node {
         let mut pairs = pair.into_inner();
         let module_name = pairs.next().unwrap().into_inner().next().unwrap().tos();
-        let nodes = pairs.map(|x| x.node(path)).map(|n|{
+        let nodes = pairs.map(|x| x.node()).map(|n|{
             if let Node::NonLeafNode(of_nln) = n {
                 (of_nln.s, *of_nln.n)
             } else {
@@ -174,36 +154,36 @@ impl Node {
         Node::File(Node::Module(OfModule{ _s: module_name, _h: nodes }).bx())
     }
 
-    fn type_def(pair: Pair<Rule>, path: &PathBuf) -> Node {
+    fn type_def(pair: Pair<Rule>) -> Node {
         let mut pairs = pair.into_inner();
-        pairs.next().unwrap().node(path)
+        pairs.next().unwrap().node()
     }
 
-    fn entity_def(pair: Pair<Rule>, path: &PathBuf) -> Node {
+    fn entity_def(pair: Pair<Rule>) -> Node {
         let mut pairs = pair.into_inner();
         let entity = pairs.next().unwrap();
         // println!("entity: {:#?}", entity);
         let entity_name = entity.clone().as_str().to_string();
-        Node::NonLeafNode(OfNonLeafNode{ s: entity_name, n: pairs.next().unwrap().node(path).bx()})
+        Node::NonLeafNode(OfNonLeafNode{ s: entity_name, n: pairs.next().unwrap().node().bx()})
     }
 
 
-    fn type_alias(pair: Pair<Rule>, fname: &PathBuf) -> Node {
+    fn type_alias(pair: Pair<Rule>) -> Node {
         let mut pairs = pair.into_inner();
         let alias_name = pairs.next().unwrap().tos();
-        let aliased_type = pairs.next().unwrap().node(fname);
+        let aliased_type = pairs.next().unwrap().node();
         Node::NonLeafNode(OfNonLeafNode{ s: alias_name, n: aliased_type.bx()})
     }
 
-    fn type_name(pair: Pair<Rule>, _: &PathBuf) -> Node {
+    fn type_name(pair: Pair<Rule>) -> Node {
         let name = pair.tos();
         Node::TypeName(name)
     }
     
-    fn entity(pair: Pair<'_, Rule>, path: &PathBuf) -> Node {
+    fn entity(pair: Pair<'_, Rule>) -> Node {
         let mut pairs = pair.into_inner();
         let extends = pairs.next().map(|x| x.tos());
-        let attrs_option = pairs.next().map(|x| x.into_inner().map(|y| y.node(path)).collect::<Vec<Node>>());
+        let attrs_option = pairs.next().map(|x| x.into_inner().map(|y| y.node()).collect::<Vec<Node>>());
         let attrs = match attrs_option {
             Some(v) => v,
             None => Vec::new(),
@@ -217,10 +197,10 @@ impl Node {
         }).into_iter().collect()}
     }
     
-    fn attr(pair: Pair<'_, Rule>, path: &PathBuf) -> Node {
+    fn attr(pair: Pair<'_, Rule>) -> Node {
         let mut pairs = pair.into_inner();
         let name = pairs.next().unwrap().tos();
-        let attr_type = pairs.next().unwrap().node(path);
+        let attr_type = pairs.next().unwrap().node();
         Node::NonLeafNode(OfNonLeafNode{ s: name, n: attr_type.bx()})
     }
 
