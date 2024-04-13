@@ -1,10 +1,8 @@
 file = {  module_def  ~ (type_def)+  }
-//file = { module_def }
-module_def = { "module" ~ module_name ~ ";" }
+module_def = { "module" ~ module_name  }
 module_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
 type_def = { (entity_def | type_alias )  }
-//data_type_def = { type_alias ~ ";"}
-type_alias = { "type" ~ type_name ~ "=" ~ type_name ~ ";"}
+type_alias = { "type" ~ type_name ~ "=" ~ type_name}
 type_name = ${ ASCII_ALPHA_UPPER ~ ASCII_ALPHA*  }
 entity_def = { "entity" ~ type_name ~ entity }
 entity = { extends? ~ "{" ~ attrs? ~ "}" }
@@ -14,3 +12,5 @@ attr = { attr_name ~":"~ type_name }
 attr_name = ${ ASCII_ALPHA_LOWER ~ (ASCII_ALPHA_LOWER | "_")* }
 qualified_type_name = {  module_name ~ "." ~ type_name }
 WHITESPACE = _{ " " | "\n" | "\t" | "\r" }
+
+expr = {  "(" ~ expr ~ ")" }

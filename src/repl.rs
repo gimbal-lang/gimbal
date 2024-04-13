@@ -1,5 +1,4 @@
 
-mod error;
 
 use std::{io::{stdin, stdout, Write}, path::Path};
 
@@ -8,9 +7,9 @@ use pest::iterators::Pair;
 use pest_derive::Parser;
 use pest::Parser;
 
-use crate::{app::{self, App}, lang::parser::parse_app};
+use crate::{app::App, GimbalString};
+use crate::error::Error;
 
-use self::error::Error;
 
 
 #[derive(Parser)]
@@ -21,7 +20,7 @@ struct ReplParser;
 
 pub fn run() -> Result<(), Error>{
     let mut current_app = App::new();
-    let mut _current_mod: Option<String> = None;
+    let mut current_mod: Option<String> = None;
     loop {
         print!("> ");
         stdout().flush().unwrap();
@@ -35,7 +34,7 @@ pub fn run() -> Result<(), Error>{
                     match parse(&input) {
                         Ok(cmd) => match cmd {
                             Command::Load(path) => {
-                                current_app = parse_app(&Path::new(&path).to_path_buf())?;
+                                current_app = App::load(&Path::new(&path).to_path_buf())?;
                                 println!("App loaded");
                             },
                             Command::Help => println!("Type :q to quit"),
@@ -43,15 +42,25 @@ pub fn run() -> Result<(), Error>{
                                 match key {
                                     SetType::Module => {
                                         match set_module(&current_app, &value) {
-                                            Err(err) => println!("{}", err.repl_msg()),
+                                            Err(err) => println!("{}", err.to_string()),
                                             Ok(m) => {
-                                                _current_mod = Some(m.to_string());
+                                                current_mod = Some(m.to_string());
                                                 println!("You are now in the `{}` module", m);
                                             }
                                         };
                                     },
                                 }
                             },
+                            Command::Gimbal(code) => {
+                                match &current_mod {
+                                    None => println!("You are not in a module. Use the command `:set module <module_name>`"),
+                                    Some(m) => {
+                                        let source_code = format!("module {} {}", m, code);
+                                        current_app = current_app.patch(&source_code)?;
+                                        
+                                    }
+                                }
+                            }
                             _ => println!("{:?}", cmd),
                             }
                         Err(err) => println!("{}", err),
@@ -73,14 +82,14 @@ fn parse(input: &str) -> Result<Command, Error>  {
                     None => Ok(Command::Empty),
                 }
             },
-            Rule::gimbal => pair.into_inner().next().unwrap().command(),
+            Rule::gimbal => pair.command(),
             _ => unreachable!()
         }
         None => Ok(Command::Empty),
     }
 }
 
-fn set_module<'a>(app: &App, module: &'a str) -> Result<&'a str, app::Error> {
+fn set_module<'a>(app: &App, module: &'a str) -> Result<&'a str, Error> {
     match app.module_exists(module) {
         None => {
             Ok(module)
@@ -103,7 +112,7 @@ impl GimbalPair for Pair<'_, Rule> {
             Rule::reload => Ok(Command::Reload),
             Rule::set => Ok(self.set_cmd()), 
             Rule::load => Ok(Command::Load(self.inu().tos())),
-            Rule::gimbal => Ok(Command::Gimbal(self.inu().tos())),
+            Rule::gimbal => Ok(Command::Gimbal(self.tos())),
             _ => Ok(Command::Empty)
         }
     }
@@ -135,6 +144,17 @@ enum Command {
     Reload,
     Gimbal(String),
     Set{key: SetType, value: String}
+}
+
+impl Command {
+    fn help(&self) -> String {
+        match self {
+            Command::Help => ":help\tshows this help".tos(),
+            Command::Load(_) => ":load <path>\tloads an application from <path>".tos(),
+            Command::Set { key: _, value: __ } => ":set mod <module>\tsets the module you are working in".tos(),
+            _ => "".tos(),
+        }
+    }
 }
 
 #[derive(Debug)]

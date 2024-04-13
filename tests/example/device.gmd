@@ -1,5 +1,5 @@
-module example;
+module example
 entity Company {
   name: String,
-};
+}
 

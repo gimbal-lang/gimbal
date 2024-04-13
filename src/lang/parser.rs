@@ -4,9 +4,7 @@ use std::{collections::HashMap, ffi::OsStr, fmt::Debug, fs, hash::Hash, path::Pa
 use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 
-use crate::app::App;
-
-use super::error::{Error, GimbalResult};
+pub use super::error::{Error, GimbalResult};
 
 
 #[derive(Parser)]
@@ -16,10 +14,9 @@ struct DataLangParser;
 
 type PestError = pest::error::Error<Rule>;
 type NonLeafNodeMap = HashMap<String, Node>;
-pub type ModuleMap = HashMap<String, NonLeafNodeMap>;
+pub type ModuleMap =  HashMap<String, NonLeafNodeMap>;
 
-type ModuleTuple = (String, NonLeafNodeMap);
-
+pub type ModuleTuple = (String, NonLeafNodeMap);
 
 
 
@@ -48,22 +45,23 @@ impl OfNonLeafNode {
     }
 }
 
-pub fn parse_app(app_path: &PathBuf) -> Result<App, Error>  {
-    let paths_to_parse = paths_to_parse(app_path)?;
-    let modules: Vec<ModuleTuple>  = paths_to_parse.into_iter().map(|y| Ok(parse_path(&y))?).collect::<Result<Vec<ModuleTuple>, Error>>()?;
-    //println!("modules: {:#?}", modules);
-    let mut module_map: ModuleMap = HashMap::new();
-    for module in modules {
-            let existing_module = module_map.remove(&module.0);
-        if let Some(mut em) = existing_module {
-            em.extend(module.1);
-            module_map.insert(module.0, em)
-        } else {
-            module_map.insert(module.0, module.1)
-        };
-    };
-    Ok(App::load(module_map))
-}
+// pub fn parse_app(app_path: &PathBuf) -> Result<App, Error>  {
+//     let paths_to_parse = paths_to_parse(app_path)?;
+//     let modules: Vec<ModuleTuple>  = paths_to_parse.into_iter().map(|y| Ok(parse_path(&y))?).collect::<Result<Vec<ModuleTuple>, Error>>()?;
+//     //println!("modules: {:#?}", modules);
+//     let mut module_map: ModuleMap = HashMap::new();
+//     for module in modules {
+//             let existing_module = module_map.remove(&module.0);
+//         if let Some(mut em) = existing_module {
+//             em.extend(module.1);
+//             module_map.insert(module.0, em)
+//         } else {
+//             module_map.insert(module.0, module.1)
+//         };
+//     };
+//     Ok(App::load_module_map(module_map))
+// }
+
 
 
 fn paths_to_parse(app_path: &PathBuf) -> Result<Vec<PathBuf>, Error> {
@@ -76,12 +74,12 @@ fn paths_to_parse(app_path: &PathBuf) -> Result<Vec<PathBuf>, Error> {
     .collect::<Vec<PathBuf>>())
 }
 
-fn parse_path(path: &PathBuf) -> Result<ModuleTuple, Error> {
-    parse_file(&fs::read_to_string(&path).togr(path)?).togr(path)
+pub fn parse_path(path: &PathBuf) -> Result<ModuleTuple, Error> {
+    parse_source(&fs::read_to_string(&path).togr(path)?).togr(path)
 }
 
-pub fn parse_file(unparsed_file: &str) -> Result<ModuleTuple, PestError> {
-    let mut pairs = DataLangParser::parse(Rule::file, unparsed_file)?;
+pub fn parse_source(source_code: &str) -> Result<ModuleTuple, PestError> {
+    let mut pairs = DataLangParser::parse(Rule::file, source_code)?;
     let file: Node = pairs.next().unwrap().node();
     let module = if let Node::File(n) = file {
        if let Node::Module(of_module) = *n {
